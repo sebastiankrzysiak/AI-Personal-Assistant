@@ -66,10 +66,57 @@ pip install -r requirements.txt
 python app.py
 ```
 
+### n8n Workflows
+
+Workflow templates live in [`n8n/`](n8n/). All credentials and personal IDs have been removed — replace the `YOUR_*` placeholders after importing.
+
+| File | Purpose |
+|------|---------|
+| `AI-Assistant.json` | Main agent. Webhook → GPT-4o agent with MongoDB memory, Contacts sheet, and the three sub-agents as tools |
+| `Email-Agent.json` | Sends and reads Gmail messages |
+| `Calendar-Agent.json` | Creates events (with or without attendees) and lists events in Google Calendar |
+| `Research-Agent.json` | Answers questions using Wikipedia, falling back to Hacker News |
+
+**1. Import the sub-agents first**  
+In n8n, import `Email-Agent.json`, `Calendar-Agent.json`, and `Research-Agent.json`. Save each one and copy its workflow ID from the URL (`/workflow/<ID>`).
+
+**2. Import the main assistant**  
+Import `AI-Assistant.json`, then open the `emailAgent`, `calendarAgent`, and `researchAgent` tool nodes and paste the IDs from step 1 in place of:
+- `YOUR_EMAIL_AGENT_WORKFLOW_ID`
+- `YOUR_CALENDAR_AGENT_WORKFLOW_ID`
+- `YOUR_RESEARCH_AGENT_WORKFLOW_ID`
+
+**3. Add credentials**  
+Each node will prompt for credentials on first open:
+
+| Credential | Used by |
+|------------|---------|
+| OpenAI API | All four workflows |
+| Gmail OAuth2 | Email Agent |
+| Google Calendar OAuth2 | Calendar Agent |
+| Google Service Account | Contacts Database (AI Assistant) |
+| MongoDB | MongoDB Chat Memory (AI Assistant) |
+
+**4. Replace remaining placeholders**
+
+| Placeholder | Where | Replace with |
+|-------------|-------|--------------|
+| `YOUR_NAME` | Email Agent prompt + `Send Email` sender name; AI Assistant prompt examples | The name to sign emails with |
+| `YOUR_GOOGLE_SHEET_ID` | `Contacts Database` node | ID of a Google Sheet with contact names and email addresses (share it with your service account) |
+| `YOUR_DATABASE_NAME` | `MongoDB Chat Memory` node | Your MongoDB database name |
+| `YOUR_SESSION_KEY` | `MongoDB Chat Memory` node | Any unique string (one chat history per key) |
+
+The Calendar Agent uses your `primary` calendar by default — change it in the three calendar nodes if needed.
+
+**5. Activate**  
+Activate the AI Assistant workflow. The production webhook URL will be:
+```
+https://<your-n8n-host>/webhook/personal-assistant
+```
+The webhook expects a POST with a JSON body like `{"text": "your message"}`.
+
 ### Configuration
-- Update `N8N_URL` in `app.py` with your production webhook URL.  
-- Configure your MongoDB connection string in n8n.  
-- Add your OpenAI API key inside n8n workflows.  
+- Set `N8N_URL` in `app.py` to the production webhook URL from step 5.  
 
 ---
 
@@ -78,7 +125,7 @@ python app.py
 - Start the React app → open `http://localhost:3000`  
 - Start the Flask backend → runs on `http://localhost:5000`  
 - Chat with the assistant in real time  
-<img src="sample.png" alt="Architecture Diagram" width="500"/>
+<img src="sample.png" alt="Sample chat" width="500"/>
 - Try natural language commands like:  
   - “Schedule a meeting with John tomorrow at 3 PM”  
   - “Send an email to Sarah about the project update”  
@@ -91,4 +138,4 @@ python app.py
 - **Backend:** Flask, Python  
 - **AI & Orchestration:** OpenAI, n8n  
 - **Database:** MongoDB  
-- **Integrations:** Google Contacts, Calendar, Email  
+- **Integrations:** Google Sheets (contacts), Google Calendar, Gmail, Wikipedia, Hacker News

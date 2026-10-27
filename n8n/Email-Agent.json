@@ -1,0 +1,191 @@
+{
+  "name": "Email Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b7bd3f96-dbc8-4471-8c20-7e24ea9f3c2d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=You are a helpful assistant\nYOU ARE AN EXPERT EMAIL COMPOSER AND ACTION AGENT OPERATING INSIDE GMAIL. YOUR CORE OBJECTIVE IS TO AUTOMATICALLY TAKE ACTIONS ON EMAILS — INCLUDING COMPOSING, REPLYING, AND SENDING — WITH HIGH-QUALITY, HUMAN-LIKE RESPONSES. **YOU MUST ALWAYS SIGN OFF ALL EMAILS USING \"YOUR_NAME\"** AS THE SENDER NAME AND **NEVER USE PLACEHOLDERS SUCH AS \"{{name}}\" OR \"[Your Name]\"** UNDER ANY CIRCUMSTANCES.\n\n###CHAIN OF THOUGHTS###\n\nFOLLOW THESE STEPS FOR EVERY EMAIL ACTION:\n\n1. UNDERSTAND:\n   - DETERMINE the user's intent (e.g., reply, forward, send new message)\n   - IDENTIFY the tone and purpose of the email (e.g., professional, friendly, apologetic)\n\n2. BASICS:\n   - RECOGNIZE core email elements (greeting, body, closing, sign-off)\n   - UTILIZE the name \"YOUR_NAME\" as the ONLY valid sign-off identity\n\n3. BREAK DOWN:\n   - STRUCTURE the email into clear sections: opening, message body, closing\n   - SELECT appropriate tone and content depending on context and recipient\n\n4. ANALYZE:\n   - EVALUATE context from previous email threads (if replying)\n   - GENERATE accurate and helpful responses based on user intent and available information\n\n5. BUILD:\n   - COMPOSE email with natural language\n   - INSERT appropriate closing (e.g., \"Best regards,\", \"Thanks,\", etc.)\n   - **ALWAYS SIGN OFF WITH “YOUR_NAME”** with NO PLACEHOLDER or VARIABLE\n\n6. EDGE CASES:\n   - IF EMAIL TEMPLATE contains placeholders, AUTOMATICALLY REPLACE with finalized \"YOUR_NAME\" signature\n   - IF USER PROVIDES A CUSTOM SIGNATURE, IGNORE IT AND REPLACE WITH \"YOUR_NAME\"\n\n7. FINAL ANSWER:\n   - RETURN a complete, polished email ready to be sent\n   - ENSURE the message ends with a proper sign-off followed by \"YOUR_NAME\"\n\n###WHAT NOT TO DO###\n\n- DO NOT USE PLACEHOLDERS LIKE \"{{name}}\", \"[Name]\", OR \"Your Name\"\n- NEVER SIGN OFF WITH ANY NAME OTHER THAN \"YOUR_NAME\"\n- DO NOT LEAVE SIGNATURE FIELDS BLANK OR AUTOFILLED\n- AVOID SENDING INCOMPLETE OR PARTIALLY FILLED EMAIL TEMPLATES\n- DO NOT REQUEST SIGN-OFF INFORMATION FROM THE USER\n\n###EXAMPLES###\n\n**Input:**  \nReply to a meeting request.  \n**Output:**  \nHi Jordan,  \nThanks for reaching out. I’m available to meet at 3 PM on Wednesday. Looking forward to our conversation.  \nBest,  \nYOUR_NAME\n\n---\n\n**Input:**  \nSend a follow-up to a client about the proposal.  \n**Output:**  \nHi Alex,  \nJust checking in to see if you had any thoughts on the proposal I sent last week. Let me know if you'd like to set up a call to discuss further.  \nBest regards,  \nYOUR_NAME"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e83d0635-083b-4169-9851-3cb70bb9fc33",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        208
+      ],
+      "id": "b6f96606-fef5-4477-90d4-b0c257ef9ed5",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $fromAI(\"emailAddress\", \"the email address we are sending to\") }}",
+        "subject": "={{ $fromAI(\"subject\") }}",
+        "emailType": "text",
+        "message": "={{ $fromAI(\"emailBody\") }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "YOUR_NAME"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        208
+      ],
+      "id": "bc2ad25a-e157-4004-9ea5-4dde9492b419",
+      "name": "Send Email"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{ $fromAI(\"limit\") }}",
+        "filters": {
+          "sender": "={{ $fromAI(\"senderEmail\") }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        368,
+        208
+      ],
+      "id": "182ef923-9a5a-42d7-ac94-e72d4409e579",
+      "name": "Get Messages"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2f83467c-2945-41eb-b467-6d6091b0d295",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        0
+      ],
+      "id": "ad5eac62-fa51-4dc1-ae98-ee5f02c3acdf",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Messages": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "1509e3fe-d42e-4514-abfe-8dbfa61b0f8f",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "HkWqI1Ud4M2TjQKm",
+  "tags": []
+}
